@@ -6,12 +6,10 @@ import pandas as pd
 import numpy as np
 import sys
 
-# Read CSV file into pandas DataFrame
 df = pd.read_csv('train.csv')
-# list_of_column_names = list(df.columns)
-# data = df.values
 
-# labels = df['Sex'].unique()
+# print(df.Pclass.value_counts())
+# sys.exit()
 
 def one_hot_encode(df, column_name):
     for name in column_name:
@@ -29,6 +27,7 @@ def one_hot_encode(df, column_name):
     return df
 
 ref_data = one_hot_encode(df, ['Sex', 'Embarked'])
+
 def softmax(x):
     exp_x = [math.exp(i) for i in x]
     sum_exp_x = sum(exp_x)
@@ -37,9 +36,6 @@ def softmax(x):
         zero_arrays[i] = item/sum_exp_x
     return zero_arrays
 
-# def softmax(data):
-#   return np.exp(data) / np.sum(np.exp(data), axis=1, keepdims=True)
-
 null_columns = ref_data.columns[ref_data.isnull().any()].tolist()
 # print('Столбцы NaN:', null_columns)
 
@@ -47,8 +43,8 @@ null_columns = ref_data.columns[ref_data.isnull().any()].tolist()
 median_age = ref_data['Age'].median()
 ref_data.fillna({'Age': median_age}, inplace=True)
 
-# Удаляем слолбцы
-cols_to_drop = ['Name', 'Ticket', 'Cabin']
+# Удаляем слолбцы 'Name', 'Ticket', 'Cabin', 'PassengerId'
+cols_to_drop = ['Name', 'Ticket', 'Cabin', 'PassengerId']
 for col in cols_to_drop:
     if col in ref_data.columns:
         ref_data = ref_data.drop(col, axis=1)
@@ -71,20 +67,42 @@ new_data = pd.concat([new_data, fare_column], axis=1)
 # print(new_data)
 # sys.exit()
 
-# Масштабирование данных в столбцах Age и Fare
-scaler = StandardScaler()
-data[['Age', 'Fare']] = scaler.fit_transform(data[['Age', 'Fare']])
+# # Масштабирование данных в столбцах Age и Fare
+# scaler = StandardScaler()
+# data[['Age', 'Fare']] = scaler.fit_transform(data[['Age', 'Fare']])
 
-#Нормализация данных
-normalizer = MinMaxScaler()
-data[['Age', 'Fare']] = normalizer.fit_transform(data[['Age', 'Fare']])
+# #Нормализация данных
+# normalizer = MinMaxScaler()
+# data[['Age', 'Fare']] = normalizer.fit_transform(data[['Age', 'Fare']])
 
+
+# Здесь данные с удаленным столбцами, но без приведения Age и Fare в диапазон
 for test_size in range(100):
   X_train, X_test, y_train, y_test = train_test_split(data.drop('Survived', axis=1), data['Survived'], test_size=0.2)
 
 #   lr = LogisticRegression(random_state=42)
+  data_lr = LogisticRegression(max_iter=10000)
+  data_lr.fit(X_train, y_train)
+  data_lr = data_lr.score(X_test, y_test)
+
+print('Accuracy:', data_lr)
+
+# Здесь данные с удаленным столбцами, с приведением Age и Fare в диапазон 0 - 1
+for test_size in range(100):
+  X_train, X_test, y_train, y_test = train_test_split(new_data.drop('Survived', axis=1), new_data['Survived'], test_size=0.2)
+
   lr = LogisticRegression(max_iter=1000)
   lr.fit(X_train, y_train)
-  lr = lr.score(X_test, y_test)
+  new_data_lr = lr.score(X_test, y_test)
 
-print('Accuracy:', lr)
+print('Accuracy editied data:', new_data_lr)
+
+# На числовых данных
+for test_size in range(100):
+  X_train, X_test, y_train, y_test = train_test_split(new_data[['Age', 'Fare']], new_data['Survived'], test_size=0.2)
+
+  numeric_lr = LogisticRegression()
+  numeric_lr.fit(X_train, y_train)
+  numeric_lr = numeric_lr.score(X_test, y_test)
+
+print('Accuracy numeric data:', numeric_lr)
